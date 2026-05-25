@@ -15,9 +15,8 @@ if not os.path.exists("rf_model.pkl"):
     url = "https://drive.google.com/uc?id=1bhuATEqEAwg9nVa5e0Yf4kvVtAPz7rsz"
     gdown.download(url, "rf_model.pkl", quiet=False)
 
-# Load Models
+# Load RF Model
 rf_model = joblib.load("rf_model.pkl")
-selector = joblib.load("selector.pkl")
 
 # Title
 st.title("Cloud Task Failure Prediction")
@@ -37,6 +36,7 @@ start_time = st.number_input("Start Time", value=0.0)
 end_time = st.number_input("End Time", value=0.0)
 assigned_memory = st.number_input("Assigned Memory", value=0.0)
 page_cache_memory = st.number_input("Page Cache Memory", value=0.0)
+
 cycles_per_instruction = st.number_input(
     "Cycles Per Instruction",
     value=0.0
@@ -46,6 +46,7 @@ memory_accesses_per_instruction = st.number_input(
     "Memory Accesses Per Instruction",
     value=0.0
 )
+
 rr_cpu = st.number_input("RR CPU", value=0.0)
 rr_memory = st.number_input("RR Memory", value=0.0)
 au_cpu = st.number_input("AU CPU", value=0.0)
@@ -80,11 +81,8 @@ if st.button("Predict"):
         mu_memory
     ]])
 
-    # Feature Selection
-    selected_data = selector.transform(data)
-
-    # Random Forest Prediction
-    prediction = rf_model.predict(selected_data)
+    # Prediction
+    prediction = rf_model.predict(data)
 
     # Labels
     labels = {
