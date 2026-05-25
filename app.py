@@ -1,9 +1,16 @@
 import streamlit as st
 import numpy as np
-from tensorflow.keras.models import load_model
+import joblib
 
-# Load GRU Model
-gru_model = load_model("gru_model.h5")
+# Page Config
+st.set_page_config(
+    page_title="Cloud Task Failure Prediction",
+    layout="centered"
+)
+
+# Load Models
+rf_model = joblib.load("rf_model.pkl")
+selector = joblib.load("selector.pkl")
 
 # Title
 st.title("Cloud Task Failure Prediction")
@@ -12,29 +19,34 @@ st.write("Enter Feature Values")
 
 # Input Fields
 
-instance_events_type = st.number_input("Instance Events Type")
-scheduling_class = st.number_input("Scheduling Class")
-collection_type = st.number_input("Collection Type")
-priority = st.number_input("Priority")
-collections_events_type = st.number_input("Collections Events Type")
-vertical_scaling = st.number_input("Vertical Scaling")
-scheduler = st.number_input("Scheduler")
-start_time = st.number_input("Start Time")
-end_time = st.number_input("End Time")
-assigned_memory = st.number_input("Assigned Memory")
-page_cache_memory = st.number_input("Page Cache Memory")
-cycles_per_instruction = st.number_input("Cycles Per Instruction")
-memory_accesses_per_instruction = st.number_input("Memory Accesses Per Instruction")
-rr_cpu = st.number_input("RR CPU")
-rr_memory = st.number_input("RR Memory")
-au_cpu = st.number_input("AU CPU")
-au_memory = st.number_input("AU Memory")
-mu_cpu = st.number_input("MU CPU")
-mu_memory = st.number_input("MU Memory")
+instance_events_type = st.number_input("Instance Events Type", value=0.0)
+scheduling_class = st.number_input("Scheduling Class", value=0.0)
+collection_type = st.number_input("Collection Type", value=0.0)
+priority = st.number_input("Priority", value=0.0)
+collections_events_type = st.number_input("Collections Events Type", value=0.0)
+vertical_scaling = st.number_input("Vertical Scaling", value=0.0)
+scheduler = st.number_input("Scheduler", value=0.0)
+start_time = st.number_input("Start Time", value=0.0)
+end_time = st.number_input("End Time", value=0.0)
+assigned_memory = st.number_input("Assigned Memory", value=0.0)
+page_cache_memory = st.number_input("Page Cache Memory", value=0.0)
+cycles_per_instruction = st.number_input("Cycles Per Instruction", value=0.0)
+memory_accesses_per_instruction = st.number_input(
+    "Memory Accesses Per Instruction",
+    value=0.0
+)
+rr_cpu = st.number_input("RR CPU", value=0.0)
+rr_memory = st.number_input("RR Memory", value=0.0)
+au_cpu = st.number_input("AU CPU", value=0.0)
+au_memory = st.number_input("AU Memory", value=0.0)
+mu_cpu = st.number_input("MU CPU", value=0.0)
+mu_memory = st.number_input("MU Memory", value=0.0)
 
-# Prediction
+# Predict Button
+
 if st.button("Predict"):
 
+    # Create Input Array
     data = np.array([[
         instance_events_type,
         scheduling_class,
@@ -57,17 +69,13 @@ if st.button("Predict"):
         mu_memory
     ]])
 
-    # Reshape for GRU
-    gru_input = data.reshape(
-        (data.shape[0], 1, data.shape[1])
-    )
+    # Feature Selection
+    selected_data = selector.transform(data)
 
-    # Prediction
-    prediction_probs = gru_model.predict(gru_input)
-    st.write(prediction_probs)
+    # Random Forest Prediction
+    prediction = rf_model.predict(selected_data)
 
-    prediction = np.argmax(prediction_probs, axis=1)
-
+    # Labels
     labels = {
         0: "Enable",
         1: "Evict",
@@ -80,4 +88,7 @@ if st.button("Predict"):
         8: "Update Pending"
     }
 
-    st.success(f"Predicted Event: {labels[int(prediction[0])]}")
+    result = labels.get(int(prediction[0]), "Unknown")
+
+    # Output
+    st.success(f"Predicted Event: {result}")
