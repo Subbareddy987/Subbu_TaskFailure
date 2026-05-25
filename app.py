@@ -38,6 +38,11 @@ end_time = st.number_input("End Time", value=0.0)
 assigned_memory = st.number_input("Assigned Memory", value=0.0)
 page_cache_memory = st.number_input("Page Cache Memory", value=0.0)
 cycles_per_instruction = st.number_input(
+    "Cycles Per Instruction",
+    value=0.0
+)
+
+memory_accesses_per_instruction = st.number_input(
     "Memory Accesses Per Instruction",
     value=0.0
 )
