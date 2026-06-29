@@ -3,6 +3,7 @@ from pathlib import Path
 import gdown
 import joblib
 import numpy as np
+import pandas as pd
 import streamlit as st
 
 
@@ -87,6 +88,14 @@ FIELD_GROUPS = {
     ],
 }
 
+FEATURE_KEYS = [
+    key
+    for fields in FIELD_GROUPS.values()
+    for key, _, _ in fields
+]
+
+RISK_EVENTS = {"Fail", "Kill", "Lost", "Evict"}
+
 
 st.set_page_config(
     page_title="Cloud Task Failure Prediction",
@@ -114,8 +123,33 @@ def build_input_array():
     return np.array([values])
 
 
+def predict_dataframe(model, dataframe):
+    missing_columns = [column for column in FEATURE_KEYS if column not in dataframe.columns]
+    if missing_columns:
+        return None, missing_columns
+
+    feature_data = dataframe[FEATURE_KEYS].apply(pd.to_numeric, errors="coerce")
+    if feature_data.isnull().any().any():
+        raise ValueError("CSV contains empty or non-numeric values in required feature columns.")
+
+    predictions = model.predict(feature_data)
+    results = dataframe.copy()
+    results["predicted_event"] = [LABELS.get(int(value), "Unknown") for value in predictions]
+
+    if hasattr(model, "predict_proba"):
+        probabilities = model.predict_proba(feature_data)
+        results["confidence_percent"] = np.max(probabilities, axis=1) * 100
+
+    results["risk_level"] = np.where(
+        results["predicted_event"].isin(RISK_EVENTS),
+        "High attention required",
+        "Normal / monitor",
+    )
+    return results, []
+
+
 st.title("Cloud Task Failure Prediction")
-st.caption("Project demo using Google Cluster Trace workload features.")
+st.caption("Final year project demo using Google Cluster Trace workload features.")
 
 st.markdown(
     "Enter the task, scheduling, memory, and CPU usage values below. "
@@ -178,7 +212,7 @@ if st.button("Predict Task Event", type="primary"):
 
         st.write(EVENT_NOTES.get(result, "The model returned an unknown event label."))
 
-        if result in {"Fail", "Kill", "Lost", "Evict"}:
+        if result in RISK_EVENTS:
             st.error("Risk level: High attention required")
         elif result in {"Queue", "Update Pending"}:
             st.warning("Risk level: Monitor scheduling/resource status")
@@ -187,4 +221,52 @@ if st.button("Predict Task Event", type="primary"):
     except Exception as error:
         st.error("Unable to load the prediction model or complete prediction.")
         st.write("Please check that the Google Drive model link is public and accessible.")
+        st.exception(error)
+
+st.divider()
+st.subheader("Batch Prediction From CSV")
+st.write(
+    "Upload a CSV file with the same feature columns to predict many cloud tasks at once. "
+    "This is closer to a real monitoring workflow than manual input."
+)
+
+with st.expander("Required CSV column names"):
+    st.code("\n".join(FEATURE_KEYS), language="text")
+
+uploaded_file = st.file_uploader("Upload task feature CSV", type=["csv"])
+
+if uploaded_file is not None:
+    try:
+        csv_data = pd.read_csv(uploaded_file)
+        st.write(f"Uploaded rows: {len(csv_data)}")
+        st.dataframe(csv_data.head(10), use_container_width=True)
+
+        if st.button("Predict CSV Tasks", type="primary"):
+            model = load_model()
+            prediction_results, missing_columns = predict_dataframe(model, csv_data)
+
+            if missing_columns:
+                st.error("CSV is missing required columns.")
+                st.write(", ".join(missing_columns))
+            else:
+                risky_count = int(prediction_results["predicted_event"].isin(RISK_EVENTS).sum())
+                st.success("Batch prediction completed.")
+
+                summary_columns = st.columns(3)
+                summary_columns[0].metric("Total tasks", len(prediction_results))
+                summary_columns[1].metric("Risky tasks", risky_count)
+                summary_columns[2].metric(
+                    "Normal / monitor",
+                    len(prediction_results) - risky_count,
+                )
+
+                st.dataframe(prediction_results, use_container_width=True)
+                st.download_button(
+                    "Download prediction results",
+                    data=prediction_results.to_csv(index=False).encode("utf-8"),
+                    file_name="task_failure_predictions.csv",
+                    mime="text/csv",
+                )
+    except Exception as error:
+        st.error("Unable to process the uploaded CSV file.")
         st.exception(error)
