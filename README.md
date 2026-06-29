@@ -1,22 +1,28 @@
-# Subbu_TaskFailure
+# Cloud Task Failure Prediction
 
-A Deep Learning based cloud task failure prediction system using GRU and Machine Learning classifiers on the Google Cluster Trace Dataset.
+A final year project for predicting cloud task events and possible task failures using machine learning on the Google Cluster Trace Dataset.
 
----
+Live demo: https://subbu-sps-taskfailure-xyz.streamlit.app/
 
-##  Project Overview
+GitHub repository: https://github.com/Subbareddy987/Subbu_TaskFailure
 
-This project focuses on the early prediction of task failures in cloud computing environments using a hybrid Deep Learning + Machine Learning framework.
+## Project Objective
 
-The system uses:
+Cloud computing platforms run a large number of tasks at the same time. Some tasks may fail, get killed, wait in a queue, or be evicted because of resource and scheduling issues. This project predicts the likely task event from workload features such as CPU usage, memory usage, scheduling details, priority, and task timing.
 
-- SelectKBest for feature selection
-- GRU (Gated Recurrent Unit) for feature extraction
-- Random Forest (RF)
-- Support Vector Machine (SVM)
-- K-Nearest Neighbor (KNN)
+The aim is to support early identification of risky task behavior so that cloud resources can be used more efficiently.
 
-The model predicts different task states/events in Google cloud clusters such as:
+## Key Features
+
+- Predicts cloud task events from user-entered feature values
+- Uses selected workload and resource usage features
+- Provides a deployed Streamlit web application
+- Shows the predicted task event and a short interpretation
+- Supports quick testing with sample input values
+
+## Predicted Event Classes
+
+The model predicts one of the following task states:
 
 - Enable
 - Evict
@@ -28,35 +34,25 @@ The model predicts different task states/events in Google cloud clusters such as
 - Schedule
 - Update Pending
 
-The framework helps reduce:
-
-- Resource wastage
-- SLA violations
-- Task execution failures
-- Cloud reliability issues
-
----
-
-# 🧠 Technologies Used
+## Technologies Used
 
 - Python
-- Jupyter Notebook
-- Pandas
+- Streamlit
 - NumPy
+- Pandas
 - Scikit-learn
+- Joblib
+- Gdown
+- Jupyter Notebook
 - TensorFlow / Keras
 - Matplotlib
 - Seaborn
 
----
+## Dataset
 
-#  Dataset
+Dataset used: Google Cluster Trace Dataset
 
-Dataset Used:
-
-- Google Cluster Trace Dataset
-
-Dataset contains:
+The dataset contains cloud workload information such as:
 
 - CPU usage
 - Memory usage
@@ -65,70 +61,102 @@ Dataset contains:
 - Resource requests
 - Task execution states
 
----
+## Project Workflow
 
-#  Project Workflow
+### 1. Data Preprocessing
 
-## 1. Data Preprocessing
-- Remove unnecessary columns
-- Handle missing values
-- Normalize data using MinMaxScaler
+- Removed unnecessary columns
+- Handled missing values
+- Normalized numerical features
+- Prepared task event labels for classification
 
-## 2. Feature Selection
-- SelectKBest algorithm used
-- Top important features selected
+### 2. Feature Selection
 
-## 3. Feature Extraction
-- GRU network extracts temporal patterns
-- Learns sequential dependencies
+- Used SelectKBest to identify important features
+- Reduced the feature set to the most useful task and resource attributes
 
-## 4. Classification
+### 3. Feature Extraction
 
-Machine Learning classifiers used:
+- Used GRU-based deep learning concepts to learn workload behavior and temporal patterns
+
+### 4. Classification
+
+Machine learning classifiers used in the project include:
 
 - Random Forest
-- SVM
-- KNN
+- Support Vector Machine
+- K-Nearest Neighbor
 
-## 5. Evaluation Metrics
+The deployed app uses the trained Random Forest model for prediction.
+
+### 5. Evaluation
+
+The model was evaluated using:
 
 - Accuracy
 - Precision
 - Recall
-- F1-Score
-- ROC Curve
+- F1-score
+- ROC curve
 - RMSE
 
----
-
-# 📊 Model Performance
+## Model Performance
 
 - GRU achieved around 97.7% accuracy
-- GRU + Random Forest gave best performance
-- Average AUC per class > 0.98
+- GRU + Random Forest gave the best performance
+- Average AUC per class was greater than 0.98
 
----
+## Application Overview
 
-#  Files Included
+The Streamlit app accepts feature values related to:
 
-- Final_min.ipynb → Main implementation notebook
-- ABC.csv → Dataset file
+- Task and scheduling details
+- Time and memory details
+- CPU and resource usage details
 
----
+After clicking the prediction button, the app displays:
 
-#  Future Improvements
+- Predicted event class
+- Confidence score when available
+- Short explanation of the predicted event
+- Basic risk level interpretation
 
-- Deploy as a web application
-- Real-time cloud monitoring
-- Integrate live cloud workloads
-- Add dashboard visualizations
-- Improve scalability
+## How To Run Locally
 
----
+Install the required packages:
 
-#  Author
+```bash
+pip install -r requirements.txt
+```
+
+Run the Streamlit app:
+
+```bash
+streamlit run app.py
+```
+
+## Files Included
+
+- `app.py` - Streamlit web application
+- `Final_min.ipynb` - Main model development notebook
+- `ABC.csv` - Dataset file used for the project
+- `selector.pkl` - Saved feature selector
+- `requirements.txt` - Python dependencies
+- `README.md` - Project documentation
+
+## Deployment Note
+
+The deployed app downloads the trained model file from Google Drive when `rf_model.pkl` is not already present. This keeps the repository lighter, but the Google Drive link must remain accessible for deployment to work correctly.
+
+## Future Improvements
+
+- Add live cloud workload monitoring
+- Add dashboard visualizations for CPU and memory patterns
+- Add batch prediction from uploaded CSV files
+- Improve preprocessing pipeline documentation
+- Add model comparison charts inside the app
+- Add screenshots and architecture diagrams to the README
+
+## Author
 
 Subba Reddy
-
-GitHub Repository:
-https://github.com/Subbareddy987/Subbu_TaskFailure
