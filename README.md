@@ -19,6 +19,7 @@ The aim is to support early identification of risky task behavior so that cloud 
 - Provides a deployed Streamlit web application
 - Shows the predicted task event and a short interpretation
 - Supports quick testing with sample input values
+- Supports CSV upload for batch prediction
 
 ## Predicted Event Classes
 
@@ -121,6 +122,8 @@ After clicking the prediction button, the app displays:
 - Short explanation of the predicted event
 - Basic risk level interpretation
 
+The app also supports CSV upload for batch prediction. This allows multiple task records to be predicted at once, which is closer to a real cloud monitoring scenario.
+
 ## How To Run Locally
 
 Install the required packages:
@@ -152,7 +155,6 @@ The deployed app downloads the trained model file from Google Drive when `rf_mod
 
 - Add live cloud workload monitoring
 - Add dashboard visualizations for CPU and memory patterns
-- Add batch prediction from uploaded CSV files
 - Improve preprocessing pipeline documentation
 - Add model comparison charts inside the app
 - Add screenshots and architecture diagrams to the README
