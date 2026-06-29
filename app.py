@@ -1,169 +1,136 @@
-import streamlit as st
-import numpy as np
-import joblib
-import gdown
-import os
+    "rr_memory": 0.40,
+    "au_cpu": 0.22,
+    "au_memory": 0.36,
+    "mu_cpu": 0.55,
+    "mu_memory": 0.62,
+}
 
-# Page Config
+FIELD_GROUPS = {
+    "Task and scheduling details": [
+        ("instance_events_type", "Instance Events Type", "Encoded task event type from the dataset."),
+        ("scheduling_class", "Scheduling Class", "Encoded scheduling class assigned to the task."),
+        ("collection_type", "Collection Type", "Encoded collection or job type."),
+        ("priority", "Priority", "Priority level assigned by the scheduler."),
+        ("collections_events_type", "Collections Events Type", "Encoded collection event type."),
+        ("vertical_scaling", "Vertical Scaling", "Whether vertical scaling is used, encoded numerically."),
+        ("scheduler", "Scheduler", "Encoded scheduler value from the dataset."),
+    ],
+    "Time and memory details": [
+        ("start_time", "Start Time", "Task start time value after preprocessing."),
+        ("end_time", "End Time", "Task end time value after preprocessing."),
+        ("assigned_memory", "Assigned Memory", "Memory assigned to the task."),
+        ("page_cache_memory", "Page Cache Memory", "Memory used by page cache."),
+    ],
+    "CPU and resource usage details": [
+        ("cycles_per_instruction", "Cycles Per Instruction", "CPU cycles needed per instruction."),
+        (
+            "memory_accesses_per_instruction",
+            "Memory Accesses Per Instruction",
+            "Memory access rate per instruction.",
+        ),
+        ("rr_cpu", "RR CPU", "Requested CPU resource."),
+        ("rr_memory", "RR Memory", "Requested memory resource."),
+        ("au_cpu", "AU CPU", "Average used CPU."),
+        ("au_memory", "AU Memory", "Average used memory."),
+        ("mu_cpu", "MU CPU", "Maximum used CPU."),
+        ("mu_memory", "MU Memory", "Maximum used memory."),
+    ],
+}
+
+
 st.set_page_config(
     page_title="Cloud Task Failure Prediction",
-    layout="centered"
+    layout="centered",
 )
 
-# Download RF model from Google Drive if not exists
-if not os.path.exists("rf_model.pkl"):
-    url = "https://drive.google.com/uc?id=16MtKl_HKbyGMyKtget1wycsHvLEJ_4z6"
-    gdown.download(url, "rf_model.pkl", quiet=False)
 
-# Load Model
-rf_model = joblib.load("rf_model.pkl")
+@st.cache_resource(show_spinner="Loading prediction model...")
+def load_model():
+    if not MODEL_FILE.exists():
+        gdown.download(MODEL_URL, str(MODEL_FILE), quiet=True)
+    return joblib.load(MODEL_FILE)
 
-# Title
+
+def apply_sample_values():
+    for key, value in SAMPLE_VALUES.items():
+        st.session_state[key] = value
+
+
+def build_input_array():
+    values = []
+    for fields in FIELD_GROUPS.values():
+        for key, _, _ in fields:
+            values.append(st.session_state[key])
+    return np.array([values])
+
+
 st.title("Cloud Task Failure Prediction")
+st.caption("Final year project demo using Google Cluster Trace workload features.")
 
-st.write("Enter Feature Values")
-
-# Input Fields
-
-instance_events_type = st.number_input(
-    "Instance Events Type",
-    value=0.0
+st.markdown(
+    "Enter the task, scheduling, memory, and CPU usage values below. "
+    "The trained Random Forest model predicts the likely cloud task event."
 )
 
-scheduling_class = st.number_input(
-    "Scheduling Class",
-    value=0.0
-)
+for fields in FIELD_GROUPS.values():
+    for key, _, _ in fields:
+        st.session_state.setdefault(key, 0.0)
 
-collection_type = st.number_input(
-    "Collection Type",
-    value=0.0
-)
+with st.expander("About this prediction system", expanded=True):
+    st.write(
+        "This project studies cloud task behavior using selected features from the "
+        "Google Cluster Trace Dataset. The model predicts events such as Enable, "
+        "Evict, Lost, Finish, Kill, Fail, Queue, Schedule, and Update Pending."
+    )
 
-priority = st.number_input(
-    "Priority",
-    value=0.0
-)
+left, right = st.columns([1, 2])
+with left:
+    st.button("Use sample values", on_click=apply_sample_values)
+with right:
+    st.info("Use the sample button for a quick demo, or enter your own feature values.")
 
-collections_events_type = st.number_input(
-    "Collections Events Type",
-    value=0.0
-)
+for group_name, fields in FIELD_GROUPS.items():
+    st.subheader(group_name)
+    columns = st.columns(2)
+    for index, (key, label, help_text) in enumerate(fields):
+        with columns[index % 2]:
+            st.number_input(
+                label,
+                step=0.01,
+                format="%.4f",
+                help=help_text,
+                key=key,
+            )
 
-vertical_scaling = st.number_input(
-    "Vertical Scaling",
-    value=0.0
-)
+if st.session_state["end_time"] < st.session_state["start_time"]:
+    st.warning("End Time is lower than Start Time. Please check the time values.")
 
-scheduler = st.number_input(
-    "Scheduler",
-    value=0.0
-)
+model = load_model()
 
-start_time = st.number_input(
-    "Start Time",
-    value=0.0
-)
+if st.button("Predict Task Event", type="primary"):
+    data = build_input_array()
+    prediction = model.predict(data)
+    result = LABELS.get(int(prediction[0]), "Unknown")
 
-end_time = st.number_input(
-    "End Time",
-    value=0.0
-)
+    confidence = None
+    if hasattr(model, "predict_proba"):
+        probabilities = model.predict_proba(data)[0]
+        confidence = float(np.max(probabilities)) * 100
 
-assigned_memory = st.number_input(
-    "Assigned Memory",
-    value=0.0
-)
-
-page_cache_memory = st.number_input(
-    "Page Cache Memory",
-    value=0.0
-)
-
-cycles_per_instruction = st.number_input(
-    "Cycles Per Instruction",
-    value=0.0
-)
-
-memory_accesses_per_instruction = st.number_input(
-    "Memory Accesses Per Instruction",
-    value=0.0
-)
-
-rr_cpu = st.number_input(
-    "RR CPU",
-    value=0.0
-)
-
-rr_memory = st.number_input(
-    "RR Memory",
-    value=0.0
-)
-
-au_cpu = st.number_input(
-    "AU CPU",
-    value=0.0
-)
-
-au_memory = st.number_input(
-    "AU Memory",
-    value=0.0
-)
-
-mu_cpu = st.number_input(
-    "MU CPU",
-    value=0.0
-)
-
-mu_memory = st.number_input(
-    "MU Memory",
-    value=0.0
-)
-
-# Predict Button
-
-if st.button("Predict"):
-
-    # Create Input Array
-    data = np.array([[
-        instance_events_type,
-        scheduling_class,
-        collection_type,
-        priority,
-        collections_events_type,
-        vertical_scaling,
-        scheduler,
-        start_time,
-        end_time,
-        assigned_memory,
-        page_cache_memory,
-        cycles_per_instruction,
-        memory_accesses_per_instruction,
-        rr_cpu,
-        rr_memory,
-        au_cpu,
-        au_memory,
-        mu_cpu,
-        mu_memory
-    ]])
-
-    # Prediction
-    prediction = rf_model.predict(data)
-
-    # Labels
-    labels = {
-        0: "Enable",
-        1: "Evict",
-        2: "Lost",
-        3: "Finish",
-        4: "Kill",
-        5: "Fail",
-        6: "Queue",
-        7: "Schedule",
-        8: "Update Pending"
-    }
-
-    result = labels.get(int(prediction[0]), "Unknown")
-
-    # Output
     st.success(f"Predicted Event: {result}")
+
+    metric_columns = st.columns(2)
+    metric_columns[0].metric("Predicted class", result)
+    if confidence is not None:
+        metric_columns[1].metric("Model confidence", f"{confidence:.2f}%")
+    else:
+        metric_columns[1].metric("Model confidence", "Not available")
+
+    st.write(EVENT_NOTES.get(result, "The model returned an unknown event label."))
+
+    if result in {"Fail", "Kill", "Lost", "Evict"}:
+        st.error("Risk level: High attention required")
+    elif result in {"Queue", "Update Pending"}:
+        st.warning("Risk level: Monitor scheduling/resource status")
+    else:
+        st.info("Risk level: Normal or expected task state")
