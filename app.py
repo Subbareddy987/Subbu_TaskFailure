@@ -115,7 +115,7 @@ def build_input_array():
 
 
 st.title("Cloud Task Failure Prediction")
-st.caption("Final year project demo using Google Cluster Trace workload features.")
+st.caption("Project demo using Google Cluster Trace workload features.")
 
 st.markdown(
     "Enter the task, scheduling, memory, and CPU usage values below. "
